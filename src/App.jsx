@@ -19,7 +19,7 @@ function App() {
     editorRef.current = editor;
 
     const doc = new Y.Doc();
-    const provider = new WebrtcProvider("dsa-room", doc);
+    const provider = new WebsocketProvider('wss://your-vercel-deployment-url.vercel.app/api/server', 'monaco-editor', doc);
     const type = doc.getText("java-code");
     new MonacoBinding(type, editorRef.current.getModel(), new Set([editorRef.current]), provider.awareness);
   }
