@@ -29,7 +29,14 @@ function App() {
 
     socket.on('codeChange', (code) => {
       if (editorRef.current) {
-        editorRef.current.setValue(code);
+        const model = editorRef.current.getModel();
+        const position = editorRef.current.getPosition();
+
+        // Disable events while setting the value to avoid infinite loops
+        editorRef.current.getModel().setValue(code);
+
+        // Restore cursor position
+        editorRef.current.setPosition(position);
       }
     });
 
