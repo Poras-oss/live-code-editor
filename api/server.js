@@ -7,7 +7,7 @@ const server = http.createServer(app);
 const axios = require('axios')
 const io = new Server(server, {
   cors: {
-    origin: 'https://live-code-editor-blush.vercel.app/',
+    origin: 'http://localhost:5173',
     methods: ['GET', 'POST'],
     allowedHeaders: ['Content-Type'],
     credentials: true
@@ -46,7 +46,7 @@ io.on('connection', (socket) => {
   });
 });
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 4321;
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
