@@ -5,7 +5,7 @@ import { WebrtcProvider } from 'y-webrtc';
 import { MonacoBinding } from 'y-monaco';
 import axios from 'axios';
 import { io } from 'socket.io-client';
-import debounce from 'lodash.debounce';
+import { throttle } from 'lodash';
 
 const LANGUAGE_VERSIONS = {
   java: '15.0.2', // Replace with the required Java version
@@ -24,19 +24,23 @@ function App() {
     const type = doc.getText("java-code");
 
     if (editorRef.current) {
-      const binding = new MonacoBinding(type, editorRef.current.getModel(), new Set([editorRef.current]), provider.awareness);
+      new MonacoBinding(type, editorRef.current.getModel(), new Set([editorRef.current]), provider.awareness);
     }
 
     socket.on('codeChange', (code) => {
       if (editorRef.current) {
         const model = editorRef.current.getModel();
+        const currentValue = model.getValue();
         const position = editorRef.current.getPosition();
 
-        // Disable events while setting the value to avoid infinite loops
-        editorRef.current.getModel().setValue(code);
-
-        // Restore cursor position
-        editorRef.current.setPosition(position);
+        if (currentValue !== code) {
+          model.applyEdits([{
+            range: model.getFullModelRange(),
+            text: code,
+            forceMoveMarkers: true,
+          }]);
+          editorRef.current.setPosition(position);
+        }
       }
     });
 
@@ -52,17 +56,31 @@ function App() {
     };
   }, []);
 
-  const handleCodeChange = debounce(() => {
+  const handleCodeChange = throttle(() => {
     if (editorRef.current) {
       const code = editorRef.current.getValue();
       socket.emit('codeChange', code);
     }
-  }, 300);
+  }, 300); // Throttle to avoid too frequent updates
 
-  const runCode = () => {
+  const runCode = async () => {
     if (editorRef.current) {
       const code = editorRef.current.getValue();
-      socket.emit('executeCode', code);
+      try {
+        const response = await axios.post("https://emkc.org/api/v2/piston/execute", {
+          language: language,
+          version: LANGUAGE_VERSIONS[language],
+          files: [
+            {
+              content: code,
+            },
+          ],
+        });
+        setOutput(response.data.run.output);
+      } catch (error) {
+        setOutput('Error running code');
+        console.error(error);
+      }
     }
   };
 
@@ -74,8 +92,10 @@ function App() {
           width="100%"
           theme="vs-dark"
           defaultLanguage="java"
-          onMount={(editor) => editorRef.current = editor}
-          onChange={handleCodeChange}
+          onMount={(editor) => {
+            editorRef.current = editor;
+            editor.onDidChangeModelContent(handleCodeChange);
+          }}
         />
       </div>
       <div className="w-1/3 p-4 bg-gray-900">
