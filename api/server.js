@@ -1,23 +1,51 @@
-const { WebSocketServer } = require('ws');
-const { setupWSConnection } = require('y-websocket/bin/utils');
-
-const server = new WebSocketServer({ noServer: true });
-
-server.on('connection', (conn, req) => {
-  setupWSConnection(conn, req, { docName: 'monaco-editor' });
+const express = require('express');
+const http = require('http');
+const { Server } = require('socket.io');
+const cors = require('cors');
+const app = express();
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: {
+    origin: 'http://localhost:5173',
+    methods: ['GET', 'POST'],
+    allowedHeaders: ['Content-Type'],
+    credentials: true
+  }
 });
 
-module.exports = (req, res) => {
-  if (req.method === 'GET') {
-    res.status(200).json({ message: "Server is running" });
-  } else {
-    res.status(405).json({ message: "Method not allowed" });
-  }
-};
+app.use(cors());
 
-// This is required for the WebSocket server to properly handle connections in a serverless environment
-server.on('upgrade', (req, socket, head) => {
-  server.handleUpgrade(req, socket, head, (ws) => {
-    server.emit('connection', ws, req);
+io.on('connection', (socket) => {
+  console.log('a user connected');
+  
+  socket.on('codeChange', (code) => {
+    socket.broadcast.emit('codeChange', code);
   });
+
+  socket.on('executeCode', async (code) => {
+    try {
+      const response = await axios.post("https://emkc.org/api/v2/piston/execute", {
+        language: 'java',
+        version: '15.0.2',
+        files: [
+          {
+            content: code,
+          },
+        ],
+      });
+      socket.emit('executionResult', response.data.run.output);
+    } catch (error) {
+      socket.emit('executionResult', 'Error running code');
+      console.error(error);
+    }
+  });
+
+  socket.on('disconnect', () => {
+    console.log('user disconnected');
+  });
+});
+
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
 });
