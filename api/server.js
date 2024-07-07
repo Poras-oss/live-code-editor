@@ -7,7 +7,7 @@ const server = http.createServer(app);
 const axios = require('axios')
 const io = new Server(server, {
   cors: {
-    origin: 'http://localhost:5173',
+    origin: 'https://live-code-editor-blush.vercel.app/',
     methods: ['GET', 'POST'],
     allowedHeaders: ['Content-Type'],
     credentials: true
@@ -17,7 +17,7 @@ const io = new Server(server, {
 app.use(cors());
 
 io.on('connection', (socket) => {
-  console.log('a user connected');
+ // console.log('a user connected');
   
   socket.on('codeChange', (code) => {
     socket.broadcast.emit('codeChange', code);
@@ -42,7 +42,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on('disconnect', () => {
-    console.log('user disconnected');
+    //console.log('user disconnected');
   });
 });
 

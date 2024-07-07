@@ -101,7 +101,7 @@ function App() {
       <div className="w-1/3 p-4 bg-gray-900">
         <button 
           onClick={runCode} 
-          className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-700 transition duration-300 mb-4 w-full"
+          className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-700 transition duration-300 mb-4 w-half"
         >
           Run Code
         </button>
